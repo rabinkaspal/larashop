@@ -1,11 +1,15 @@
 <?php
 namespace App\Http\Controllers;
+use App\User;
+use App\Post;
+use App\BlogPostTag;
 use App\Brand;
 use App\Category;
 use App\Product;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Auth;
 use Cart;
 
 class Front extends Controller
@@ -45,11 +49,30 @@ class Front extends Controller
     }
 
     public function blog() {
-        return view('blog', array('title' => 'Welcome','description' => '','page' => 'blog', 'brands' => $this->brands, 'categories' => $this->categories, 'products' => $this->products));
-    }
+        $posts = Post::where('id', '>', 0)->paginate(3);
+        $posts->setPath('blog');
 
-    public function blog_post($id) {
-        return view('blog_post', array('title' => 'Welcome','description' => '','page' => 'blog', 'brands' => $this->brands, 'categories' => $this->categories, 'products' => $this->products));
+        $data['posts'] = $posts;
+
+        return view('blog', array('data' => $data, 'title' => 'Latest Blog Posts', 'description' => '', 'page' => 'blog', 'brands' => $this->brands, 'categories' => $this->categories, 'products' => $this->products));
+    }
+    
+
+    public function blog_post($url) {
+        $post = Post::where('url', '=', $url)->get();
+        $post_id = $post[0]['id'];
+        
+        $tags = BlogPostTag::postTags($post_id);
+
+        $previous_url = Post::prevBlogPostUrl($post_id);
+        $next_url = Post::nextBlogPostUrl($post_id);
+
+        $data['previous_url'] = $previous_url;
+        $data['next_url'] = $next_url;
+        $data['tags'] = $tags;
+        $data['post'] = $post[0];
+
+        return view('blog_post', array('data' => $data, 'title' => $post[0]['title'], 'description' => $post[0]['description'], 'page' => 'blog', 'brands' => $this->brands, 'categories' => $this->categories, 'products' => $this->products));
     }
 
     public function contact_us() {
@@ -60,9 +83,36 @@ class Front extends Controller
         return view('login', array('title' => 'Welcome','description' => '','page' => 'home'));
     }
 
-    public function logout() {
-        return view('login', array('title' => 'Welcome','description' => '','page' => 'home'));
+    public function register(){
+        if(Request::isMethod('post')){
+            User::create([
+                'name'=>Request::get('name'),
+                'email'=>Request::get('email'),
+                'password'=>bcrypt(Request::get('password'))
+            ]);
+        }
+        return Redirect::away('login');
     }
+    
+    
+      public function authenticate() {
+        if (Auth::attempt([
+                'email' => Request::get('email'),
+                'password' => Request::get('password')
+                ])) {
+            return redirect()->intended('checkout');
+        } else {
+            return redirect('login');
+        }
+    }
+
+    public function logout() {
+    Auth::logout();
+    
+    return Redirect::away('login');
+}
+
+
 
     public function cart() {
 

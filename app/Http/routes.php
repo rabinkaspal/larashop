@@ -74,11 +74,47 @@ Route::get('/products/details/{id}', 'Front@product_details');
 Route::get('/products/categories', 'Front@product_categories');
 Route::get('/products/brands', 'Front@product_brands');
 Route::get('/blog', 'Front@blog');
-Route::get('/blog/post/{id}', 'Front@blog_post');
+Route::get('/blog/{url}', 'Front@blog_post');
 Route::get('/contact-us', 'Front@contact_us');
-Route::get('/login', 'Front@login');
-Route::get('/logout', 'Front@logout');
+// Authentication routes...
+Route::get('login', 'Front@login');
+Route::post('auth/login', 'Front@authenticate');
+Route::get('logout', 'Front@logout');
 Route::get('/cart', 'Front@cart');
 Route::get('/clear-cart', 'Front@clear_cart');
 Route::get('/checkout', 'Front@checkout');
 Route::get('/search/{query}', 'Front@search');
+
+//Registration Routes
+Route::post('/register', 'Front@register');
+
+//protected route
+Route::get('/checkout', ['middleware'=>'auth', 'uses'=>'Front@checkout']);
+
+
+// API routes...
+Route::get('/api/v1/products/{id?}', ['middleware' => 'auth.basic', function($id = null) {
+if ($id == null) {
+    $products = App\Product::all(array('id', 'name', 'price'));
+} else {
+    $products = App\Product::find($id, array('id', 'name', 'price'));
+}
+return Response::json(array(
+            'error' => false,
+            'products' => $products,
+            'status_code' => 200
+        ));
+}]);
+
+Route::get('/api/v1/categories/{id?}', ['middleware' => 'auth.basic', function($id = null) {
+if ($id == null) {
+    $categories = App\Category::all(array('id', 'name'));
+} else {
+    $categories = App\Category::find($id, array('id', 'name'));
+}
+return Response::json(array(
+            'error' => false,
+            'categories' => $categories,
+            'status_code' => 200
+        ));
+}]);
